@@ -25,6 +25,10 @@ provider:
 #  stage: dev
 #  region: us-east-1
 
+package:
+  include:
+    - bin/*
+    - sharedlib/*
 functions:
   pdfReport:
     handler: lib/handler.pdfReport
