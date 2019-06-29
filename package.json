@@ -1,0 +1,21 @@
+{
+  "name": "lambda-puppeteer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "dependencies": {
+    "@types/node": "^11.13.8",
+    "chrome-aws-lambda": "^1.14.0",
+    "puppeteer-core": "^1.15.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.4.5"
+  },
+  "scripts": {
+    "build": "tsc",
+    "deploy": "npm run build && serverless deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
