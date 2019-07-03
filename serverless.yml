@@ -20,20 +20,83 @@ service: lambda-puppeteer # NOTE: update this with your service name
 provider:
   name: aws
   runtime: nodejs8.10
+  stage: ${opt:stage, 'dev'}  # Example use "sls deploy --stage prod"
+  environment:
+    EMAIL_ADDRESS: ${ssm:emailAddress-${opt:stage, self:provider.stage}~true}
+    EMAIL_PASSWORD: ${ssm:emailPassword-${opt:stage, self:provider.stage}~true}
+    STEP_FUNCTIONS_DATA_BUCKET: ${self:service}-${opt:stage, self:provider.stage}-step-functions-data-bucket
 
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
+  iamRoleStatements: # permissions for all functions are set here
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: "StepFunctionsDataBucket"
+            - "/*"
+resources:
+  Resources:
+    StepFunctionsDataBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.STEP_FUNCTIONS_DATA_BUCKET}
+        
 
 package:
   include:
     - bin/*
     - sharedlib/*
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
+stepFunctions:
+  stateMachines:
+    pdfWorkflow:
+      name: ${self:service}-${opt:stage, self:provider.stage}-pdf-workflow
+      events:
+        - http:
+            path: pdf/create
+            method: POST
+      definition:
+        Comment: "A workflow to create a PDF, optionally encrypt it and finally email it to a specified recipient"
+        StartAt: GeneratePdf
+        States:
+          GeneratePdf:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-generatePdf"
+            ResultPath: $.pdfFilePath
+            Next: IsEncryptionRequired
+            Retry:
+            - ErrorEquals:
+              - States.ALL
+              IntervalSeconds: 10
+              MaxAttempts: 5
+              BackoffRate: 2
+          IsEncryptionRequired:
+            Type: Choice
+            Choices:
+            - Variable: $.encryptionRequired
+              BooleanEquals: true
+              Next: Encrypt
+            Default: SendByEmail
+          Encrypt:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-encrypt"
+            ResultPath: $.encryptedFilePath
+            Next: SendByEmail
+          SendByEmail:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-emailPdfReport"
+            End: true
+
 functions:
-  pdfReport:
-    handler: lib/handler.pdfReport
-    events:
-     - http:
-        path: pdf
-        method: get
-        integration: lambda
+  generatePdf:
+    handler: lib/handler.generatePdf
+  encrypt:
+    handler: lib/handler.encrypt
+  emailPdfReport:
+    handler: lib/handler.emailPdfReport
+  

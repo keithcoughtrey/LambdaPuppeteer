@@ -1,0 +1,20 @@
+{
+    "extends": "tslint:recommended",
+    "rules": {
+        "arrow-parens": [true, "ban-single-arg-parens"],
+        "interface-name": [true, "never-prefix"],
+        "max-classes-per-file": [true, 3, "exclude-class-expressions"],
+        "max-line-length": false,
+        "new-parens": true,
+        "no-arg": true,
+        "no-bitwise": true,
+        "no-conditional-assignment": true,
+        "no-console": false,
+        "object-literal-shorthand": false,
+        "object-literal-sort-keys": false,
+        "quotemark": [true, "single"]
+    },
+    "jsRules": {
+        "max-line-length": false
+    }
+  }
