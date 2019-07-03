@@ -91,7 +91,12 @@ stepFunctions:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-emailPdfReport"
             End: true
-
+            Retry:
+            - ErrorEquals:
+              - States.ALL
+              IntervalSeconds: 30
+              MaxAttempts: 4
+              BackoffRate: 4
 functions:
   generatePdf:
     handler: lib/handler.generatePdf
